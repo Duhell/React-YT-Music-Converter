@@ -7,24 +7,27 @@ function App() {
   const [isError, setError] = useState(false);
   const [data, setData] = useState(null);
   const [isLoading, setLoading] = useState(false);
-
   const setValue = (event) => {
     setError(false);
-    setInputValue(event.target.value);
+    const PARTS = event.target.value.split("=");
+    if(PARTS[1].includes('&')){
+      const REMOVED_AND_SIGN = PARTS[1].split('&');
+      PARTS[1] = REMOVED_AND_SIGN[0];
+    }
+    setInputValue(PARTS[1]);
   };
-
   const options = {
     method: "GET",
-    url: `https://${import.meta.env.VITE_X_RapidAPI_Host}/`,
+    url: import.meta.env.VITE_X_RapidAPI_URL,
     params: {
-      url: inputValue,
+      id: inputValue,
+      return: "1",
     },
     headers: {
       "X-RapidAPI-Key": import.meta.env.VITE_X_RapidAPI_Key,
       "X-RapidAPI-Host": import.meta.env.VITE_X_RapidAPI_Host,
     },
   };
-
   const getMusicData = async () => {
     setLoading(true);
     try {
@@ -33,15 +36,19 @@ function App() {
         return setError(true);
       }
       const response = await axios.request(options);
-      setData(response.data.result[0]);
+      setData(response.data);
       setLoading(false);
     } catch (error) {
       setLoading(false);
       console.error(error);
     }
   };
-
-  const searchMusic = () => getMusicData();
+  function clear() {
+    setInputValue("");
+    setError(false);
+    setData(null);
+    setLoading(false);
+  }
 
   return (
     <>
@@ -58,9 +65,15 @@ function App() {
             <span>Paste your youtube link</span>
           </div>
         )}
-        <button onClick={searchMusic} className="btn searchBTN">
-          Search
-        </button>
+        {data ? (
+          <button onClick={clear} className="btn searchBTN">
+            Clear
+          </button>
+        ) : (
+          <button onClick={getMusicData} className="btn searchBTN">
+            Search
+          </button>
+        )}
       </div>
 
       {isLoading && (
@@ -69,28 +82,29 @@ function App() {
         </div>
       )}
 
-
       {data && (
         <div className="results">
           <h4>Results:</h4>
           <div>
             <div className="card">
               <div className="thumbnail">
-                <img src={data.thumbnail} alt={data.title} />
+                <img src={data.thumb} alt={data.title} />
               </div>
               <div className="details">
                 <div className="title">
                   <span>Title: </span>
                   <span>{data.title}</span>
                 </div>
-                <div className="duration">
-                  <span>Duration: </span>
-                  <span>{data.duration} minutes</span>
-                </div>
+                {data.duration && (
+                  <div className="duration">
+                    <span>Duration: </span>
+                    <span>{data.duration} minutes</span>
+                  </div>
+                )}
 
                 <div className="channel">
                   <span>Channel: </span>
-                  <span>{data.channel}</span>
+                  <span>{data.author}</span>
                 </div>
 
                 <div className="download">
@@ -99,7 +113,7 @@ function App() {
                     target="_blank"
                     download
                     className="btn_a"
-                    href={data.url}
+                    href={data.link}
                   >
                     Download
                   </a>
